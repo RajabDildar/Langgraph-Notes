@@ -145,7 +145,11 @@ if user_input:
     config = {
         "configurable": {
             "thread_id": thread_id,
-        }
+        },
+        "metadata": {
+            "thread_id": thread_id
+        },  # this metadata is for langsmith. so that langsmith organize our chats.
+        "run_name": "chat_turn",
     }
 
     with st.chat_message("assistant"):
