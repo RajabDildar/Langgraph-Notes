@@ -1,7 +1,7 @@
 import uuid
 
 import streamlit as st
-from chatbot_backend_with_db import chatbot, get_all_threads
+from chatbot_backend_v2_with_db import chatbot, get_all_threads
 from langchain_core.messages import AIMessage, HumanMessage
 
 

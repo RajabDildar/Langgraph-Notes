@@ -1,5 +1,5 @@
 import streamlit as st
-from chatbot_backend import chatbot
+from chatbot_backend_v1 import chatbot
 from langchain_core.messages import HumanMessage
 
 if "message_history" not in st.session_state:
@@ -19,10 +19,13 @@ if user_input:
     with st.chat_message("user"):
         st.text(user_input)
 
-    res = chatbot.invoke(
-        {"messages": [HumanMessage(content=user_input)]}, config=config
-    )
-    ai_msg = res["messages"][-1].content
-    msg_history.append({"role": "assistant", "content": ai_msg})
     with st.chat_message("assistant"):
-        st.text(ai_msg)
+        ai_msg = st.write_stream(
+            message.content
+            for message, metadata in chatbot.stream(
+                {"messages": [HumanMessage(content=user_input)]},
+                config=config,
+                stream_mode="messages",
+            )
+        )
+    msg_history.append({"role": "assistant", "content": ai_msg})
