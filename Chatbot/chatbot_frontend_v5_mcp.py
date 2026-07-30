@@ -294,63 +294,53 @@ if user_input:
 
     with st.chat_message("assistant"):
         tool_status = None
-        active_tool_names: set[str] = set()
 
         def response_stream():
-            tool_status = {"status": None}
+            tool_status = None
 
-            graph_stream = backend.astream(
-                {
-                    "messages": [
-                        HumanMessage(content=user_input),
-                    ]
-                },
+            event_stream = backend.astream_events(
+                input_state={"messages": [HumanMessage(content=user_input)]},
                 config=config,
             )
 
-            for message, metadata in runner.stream(graph_stream):
-                # --------------------------------------------
-                # Detect tool requests
-                # --------------------------------------------
-
-                tool_calls = getattr(
-                    message,
-                    "tool_calls",
-                    None,
-                )
-
-                if tool_calls:
-                    for tool_call in tool_calls:
-                        tool_name = tool_call.get(
-                            "name",
-                            "unknown tool",
-                        )
-
-                        if tool_name:
-                            active_tool_names.add(tool_name)
-
-                    names = ", ".join(sorted(active_tool_names))
+            for event in runner.stream(event_stream):
+                event_name = event["event"]
+                # ----------------------------------------
+                # Tool started
+                # ----------------------------------------
+                if event_name == "on_tool_start":
+                    tool_name = event["name"]
 
                     if tool_status is None:
                         tool_status = st.status(
-                            f"Using tool: {names}",
+                            f"Using tool: {tool_name}",
                             expanded=True,
                         )
                     else:
                         tool_status.update(
-                            label=f"Using tools: {names}",
+                            label=f"Using tool: {tool_name}",
                             expanded=True,
                         )
 
-                # --------------------------------------------
-                # Stream assistant text
-                # --------------------------------------------
+                # ----------------------------------------
+                # Tool finished
+                # ----------------------------------------
+                elif event_name == "on_tool_end":
+                    if tool_status is not None:
+                        tool_status.update(
+                            label="Tool finished",
+                            state="complete",
+                            expanded=False,
+                        )
 
-                if isinstance(message, AIMessage):
-                    content = message.content
+                # ----------------------------------------
+                # LLM streaming
+                # ----------------------------------------
+                elif event_name == "on_chat_model_stream":
+                    chunk = event["data"]["chunk"]
 
-                    if isinstance(content, str) and content:
-                        yield content
+                    if chunk.content:
+                        yield chunk.content
 
             # --------------------------------------------
             # Mark tool work as completed

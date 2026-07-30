@@ -210,20 +210,17 @@ class AsyncChatbotBackend:
                 "Call await backend.initialize() first."
             )
 
-    async def astream(
+    async def astream_events(
         self,
         input_state: ChatState,
         config: dict,
-    ) -> AsyncIterator[tuple]:
-        """
-        Stream LangGraph messages asynchronously.
-        """
+    ) -> AsyncIterator[dict]:
         self._ensure_initialized()
 
-        async for event in self.graph.astream(
+        async for event in self.graph.astream_events(
             input_state,
             config=config,
-            stream_mode="messages",
+            version="v2",
         ):
             yield event
 
